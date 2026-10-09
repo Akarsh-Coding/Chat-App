@@ -32,15 +32,32 @@ io.on("connection", (socket) => {
   console.log(`Client connected: ${socket.id}`);
 
   socket.on("chat message", (payload) => {
-    // Ignore malformed payloads
     if (!payload || !payload.username || !payload.message) return;
 
     console.log(`[${payload.username}]: ${payload.message}`);
     io.emit("chat message", payload);
   });
 
+  // Typing events go to everyone EXCEPT the sender (socket.broadcast.emit)
+  socket.on("typing", (username) => {
+    if (typeof username !== "string" || !username) return;
+    socket.data.typingUser = username; // remembered so we can clean up on disconnect
+    socket.broadcast.emit("typing", username);
+  });
+
+  socket.on("stop typing", (username) => {
+    if (typeof username !== "string" || !username) return;
+    socket.data.typingUser = null;
+    socket.broadcast.emit("stop typing", username);
+  });
+
   socket.on("disconnect", () => {
     console.log(`Client disconnected: ${socket.id}`);
+
+    // If they vanished mid-typing, clear their indicator for everyone else
+    if (socket.data.typingUser) {
+      io.emit("stop typing", socket.data.typingUser);
+    }
   });
 });
 
