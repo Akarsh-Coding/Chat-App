@@ -31,6 +31,13 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
   console.log(`Client connected: ${socket.id}`);
 
+  // Receive a message from one client and broadcast it to everyone,
+  // including the sender (io.emit, not socket.broadcast.emit)
+  socket.on("chat message", (payload) => {
+    console.log(`Message from ${socket.id}: ${payload.text}`);
+    io.emit("chat message", payload);
+  });
+
   socket.on("disconnect", () => {
     console.log(`Client disconnected: ${socket.id}`);
   });
