@@ -28,35 +28,73 @@ const io = new Server(server, {
   },
 });
 
+const ROOMS = ["General", "Tech Support"];
+
 io.on("connection", (socket) => {
   console.log(`Client connected: ${socket.id}`);
 
+  // ---- Join / switch room ----
+  socket.on("join room", (payload) => {
+    const room = payload?.room;
+    if (!ROOMS.includes(room)) return; // only known rooms are allowed
+
+    const previousRoom = socket.data.room;
+    if (previousRoom === room) return; // already there
+
+    if (previousRoom) {
+      // Clear their typing indicator in the room they're leaving
+      if (socket.data.typingUser) {
+        socket.to(previousRoom).emit("stop typing", {
+          username: socket.data.typingUser,
+          room: previousRoom,
+        });
+        socket.data.typingUser = null;
+      }
+      socket.leave(previousRoom);
+    }
+
+    socket.join(room);
+    socket.data.room = room;
+    console.log(`${socket.id} joined "${room}"${previousRoom ? ` (left "${previousRoom}")` : ""}`);
+  });
+
+  // ---- Messages: only to clients subscribed to that room ----
   socket.on("chat message", (payload) => {
-    if (!payload || !payload.username || !payload.message) return;
+    if (!payload || !payload.username || !payload.message || !payload.room) return;
+    if (!socket.rooms.has(payload.room)) return; // sender must be in the room
 
-    console.log(`[${payload.username}]: ${payload.message}`);
-    io.emit("chat message", payload);
+    console.log(`(${payload.room}) [${payload.username}]: ${payload.message}`);
+    io.to(payload.room).emit("chat message", payload);
   });
 
-  // Typing events go to everyone EXCEPT the sender (socket.broadcast.emit)
-  socket.on("typing", (username) => {
-    if (typeof username !== "string" || !username) return;
-    socket.data.typingUser = username; // remembered so we can clean up on disconnect
-    socket.broadcast.emit("typing", username);
+  // ---- Typing: room-scoped AND excludes the sender ----
+  socket.on("typing", (payload) => {
+    if (!payload?.username || !socket.rooms.has(payload.room)) return;
+    socket.data.typingUser = payload.username;
+    socket.to(payload.room).emit("typing", {
+      username: payload.username,
+      room: payload.room,
+    });
   });
 
-  socket.on("stop typing", (username) => {
-    if (typeof username !== "string" || !username) return;
+  socket.on("stop typing", (payload) => {
+    if (!payload?.username || !socket.rooms.has(payload.room)) return;
     socket.data.typingUser = null;
-    socket.broadcast.emit("stop typing", username);
+    socket.to(payload.room).emit("stop typing", {
+      username: payload.username,
+      room: payload.room,
+    });
   });
 
   socket.on("disconnect", () => {
     console.log(`Client disconnected: ${socket.id}`);
 
-    // If they vanished mid-typing, clear their indicator for everyone else
-    if (socket.data.typingUser) {
-      io.emit("stop typing", socket.data.typingUser);
+    // If they vanished mid-typing, clear the indicator in their room
+    if (socket.data.typingUser && socket.data.room) {
+      io.to(socket.data.room).emit("stop typing", {
+        username: socket.data.typingUser,
+        room: socket.data.room,
+      });
     }
   });
 });
