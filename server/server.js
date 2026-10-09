@@ -6,7 +6,7 @@ const { Server } = require("socket.io");
 const app = express();
 
 // Vite -> 5173, Create React App -> 3000
-const CLIENT_ORIGIN = "http://localhost:5173";
+const CLIENT_ORIGIN = "http://localhost:5175";        // ------------------ Change this to your client origin if different -------------------------
 
 // CORS for normal HTTP routes
 app.use(cors({ origin: CLIENT_ORIGIN }));
