@@ -6,6 +6,12 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
 
+  // usernameInput = what's being typed on the join screen
+  // username = the confirmed name, set only after joining
+  const [usernameInput, setUsernameInput] = useState("");
+  const [username, setUsername] = useState("");
+  const [joinError, setJoinError] = useState("");
+
   useEffect(() => {
     function onConnect() {
       setIsConnected(true);
@@ -33,26 +39,67 @@ function App() {
     };
   }, []);
 
-  function sendMessage() {
-    const text = input.trim();
-    if (!text || !isConnected) return;
+  function joinChat() {
+    const name = usernameInput.trim();
+    if (!name) {
+      setJoinError("Username is required to enter the chat.");
+      return;
+    }
+    setJoinError("");
+    setUsername(name);
+  }
 
-    socket.emit("chat message", { text, sentAt: Date.now() });
+  function sendMessage() {
+    const message = input.trim();
+    if (!message || !isConnected) return;
+
+    socket.emit("chat message", { username, message, sentAt: Date.now() });
     setInput("");
   }
 
-  function handleKeyDown(e) {
-    if (e.key === "Enter") sendMessage();
+  const statusLine = (
+    <p>
+      Status:{" "}
+      <strong style={{ color: isConnected ? "green" : "crimson" }}>
+        {isConnected ? "Connected" : "Disconnected"}
+      </strong>
+    </p>
+  );
+
+  // ---------- Join screen ----------
+  if (!username) {
+    return (
+      <div style={{ maxWidth: 600, margin: "0 auto", padding: "2rem", fontFamily: "sans-serif" }}>
+        <h1>Real-Time Chat</h1>
+        {statusLine}
+
+        <h2>Choose a username</h2>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            value={usernameInput}
+            onChange={(e) => setUsernameInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && joinChat()}
+            placeholder="e.g. Nakul"
+            maxLength={20}
+            autoFocus
+            style={{ flex: 1, padding: "0.6rem", fontSize: "1rem" }}
+          />
+          <button onClick={joinChat} style={{ padding: "0.6rem 1.2rem" }}>
+            Join Chat
+          </button>
+        </div>
+        {joinError && <p style={{ color: "crimson" }}>{joinError}</p>}
+      </div>
+    );
   }
 
+  // ---------- Chat screen ----------
   return (
     <div style={{ maxWidth: 600, margin: "0 auto", padding: "2rem", fontFamily: "sans-serif" }}>
       <h1>Real-Time Chat</h1>
+      {statusLine}
       <p>
-        Status:{" "}
-        <strong style={{ color: isConnected ? "green" : "crimson" }}>
-          {isConnected ? "Connected" : "Disconnected"}
-        </strong>
+        Chatting as <strong>{username}</strong>
       </p>
 
       <ul
@@ -69,7 +116,7 @@ function App() {
         {messages.length === 0 && <li style={{ opacity: 0.6 }}>No messages yet</li>}
         {messages.map((m, i) => (
           <li key={`${m.sentAt}-${i}`} style={{ marginBottom: 8 }}>
-            {m.text}
+            [{m.username}]: {m.message}
           </li>
         ))}
       </ul>
@@ -78,7 +125,7 @@ function App() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
+          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
           placeholder="Type a message..."
           style={{ flex: 1, padding: "0.6rem", fontSize: "1rem" }}
         />
