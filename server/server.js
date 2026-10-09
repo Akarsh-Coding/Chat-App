@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
@@ -5,11 +7,14 @@ const { Server } = require("socket.io");
 
 const app = express();
 
-// Vite -> 5173, Create React App -> 3000
-const CLIENT_ORIGIN = "http://localhost:5175";        // ------------------ Change this to your client origin if different -------------------------
+// Comma-separated list, e.g. "https://my-chat.vercel.app,http://localhost:5175"
+const CLIENT_ORIGINS = (process.env.CLIENT_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((o) => o.trim().replace(/\/$/, "")) // strip trailing slashes
+  .filter(Boolean);
 
 // CORS for normal HTTP routes
-app.use(cors({ origin: CLIENT_ORIGIN }));
+app.use(cors({ origin: CLIENT_ORIGINS }));
 app.use(express.json());
 
 // Simple route to confirm Express is working
@@ -23,7 +28,7 @@ const server = http.createServer(app);
 // WebSocket CORS is configured separately from Express CORS
 const io = new Server(server, {
   cors: {
-    origin: CLIENT_ORIGIN,
+    origin: CLIENT_ORIGINS,
     methods: ["GET", "POST"],
   },
 });

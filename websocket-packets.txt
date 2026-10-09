@@ -1,0 +1,30 @@
+POSTMAN WEBSOCKET TEST (New > WebSocket)
+
+URL:
+ws://localhost:5000/socket.io/?EIO=4&transport=websocket
+
+Click Connect. You should receive a packet starting with 0{"sid":...
+
+Send these messages in order:
+
+1) Connect to default namespace (server logs "Client connected")
+40
+
+2) Join a room (required, or the server ignores your messages)
+42["join room",{"room":"General"}]
+
+3) Send a chat message (appears as [Postman]: Hello from Postman in browsers in General)
+42["chat message",{"username":"Postman","message":"Hello from Postman","room":"General","sentAt":1}]
+
+4) Typing indicator on
+42["typing",{"username":"Postman","room":"General"}]
+
+5) Typing indicator off
+42["stop typing",{"username":"Postman","room":"General"}]
+
+6) Isolation test: Postman is only in General, so this is ignored by the server
+42["chat message",{"username":"Postman","message":"Should not appear","room":"Tech Support","sentAt":2}]
+
+KEEP-ALIVE
+The server sends 2 every 25 seconds. Reply with 3 or the connection drops
+after about 20 more seconds.

@@ -1,10 +1,8 @@
 import { io } from "socket.io-client";
 
-const SERVER_URL = "http://localhost:5000";
+// Set VITE_SOCKET_URL in Vercel. Falls back to localhost for local dev.
+const SERVER_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
 
-// Created once at module level, so re-renders never create a new socket.
-// autoConnect: false means we connect manually inside useEffect,
-// which is what lets the cleanup function work correctly.
 export const socket = io(SERVER_URL, {
   autoConnect: false,
 });

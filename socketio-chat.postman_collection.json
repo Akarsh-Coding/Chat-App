@@ -1,0 +1,74 @@
+{
+  "info": {
+    "name": "Sprint 12 - Socket.io Chat",
+    "description": "Checks for the Socket.io chat server.\n\nHTTP requests in this collection verify the server is up and that the Socket.io handshake endpoint responds.\n\nFor the WebSocket test, create a NEW WebSocket request in Postman (New > WebSocket) and use:\n\nURL: ws://localhost:5000/socket.io/?EIO=4&transport=websocket\n\nThen send these messages in order (also in websocket-packets.txt):\n\n1. 40\n2. 42[\"join room\",{\"room\":\"General\"}]\n3. 42[\"chat message\",{\"username\":\"Postman\",\"message\":\"Hello from Postman\",\"room\":\"General\",\"sentAt\":1}]\n4. 42[\"typing\",{\"username\":\"Postman\",\"room\":\"General\"}]\n5. 42[\"stop typing\",{\"username\":\"Postman\",\"room\":\"General\"}]\n\nReply 3 whenever the server sends 2 (keep-alive ping).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" }
+  ],
+  "item": [
+    {
+      "name": "1. Express health check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Server responds 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Body says server is running', function () {",
+              "  pm.expect(pm.response.text()).to.include('Server is running');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/",
+          "host": ["{{baseUrl}}"],
+          "path": [""]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "2. Socket.io handshake (HTTP polling)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Handshake responds 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Response contains a session id (sid)', function () {",
+              "  pm.expect(pm.response.text()).to.include('\"sid\"');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/socket.io/?EIO=4&transport=polling",
+          "host": ["{{baseUrl}}"],
+          "path": ["socket.io", ""],
+          "query": [
+            { "key": "EIO", "value": "4" },
+            { "key": "transport", "value": "polling" }
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
